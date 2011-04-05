@@ -15,3 +15,19 @@ can generate as output
 
     [0x01, 0x02, 0x03, 0x04, 0x05]
 
+This toy project was started as a reply to stackoverflow question
+
+        http://stackoverflow.com/questions/3692116
+
+I've been always unsatisfied with C++ formatting and I think that
+C++ streams for formatting are indeed worse than C (moving away
+from format strings to code). I've had also always a very bad
+feeling about the C++ approach to formatting options.
+
+C++ statically typed output formatting is in my opinion so
+terrible that I always use <stdio> if I can.
+
+And I know I'm not alone.
+
+This is just my first attempt at trying to tell something
+constructive instead of just whining about those problems.
