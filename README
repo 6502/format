@@ -3,15 +3,16 @@ for C++. It is different from boost.format approach because
 it uses named parameters and places formatting options in
 the format string instead than in the calling code.
 
-For example the format string "%08/2{x}" formats the field
+For example the format string "{x:08/2}" formats the field
 named 'x' using 8 binary digits with leading zeros.
 
 There is also provision for sequence formatting:
 
-    std::cout << Format("[0x%02x*/, {v}]") %
+    std::cout << Format("[{v:/, :0x{*:02x}}]") %
                  FormatDict()("v", sequence(v.begin(), v.end()));
 
-can generate as output
+given an std::vector containing 1, 2, 3, 4 and 5 will generate
+as output
 
     [0x01, 0x02, 0x03, 0x04, 0x05]
 
@@ -25,7 +26,7 @@ from format strings to code). I've had also always a very bad
 feeling about the C++ approach to formatting options.
 
 C++ statically typed output formatting is in my opinion so
-terrible that I always use <stdio> if I can.
+limiting and annoying that I always use <stdio> if I can.
 
 And I know I'm not alone.
 
