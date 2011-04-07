@@ -48,9 +48,9 @@ int main()
                             "S = ~{{S: }~}");
     Dict fd;
     fd  ("p", P2d(1234, 0xbadf00d))
-        ("v", sequence(v.begin(), v.end()))
-        ("L", sequence(L.begin(), L.end()))
-        ("S", sequence(S.begin(), S.end()));
+        ("v", sequence(v))
+        ("L", sequence(L))
+        ("S", sequence(S));
     std::cout << fs % fd << std::endl;
     return 0;
 }

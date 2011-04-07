@@ -292,6 +292,12 @@ namespace format
         return Sequence<T>(i0, i1);
     }
 
+    template<typename T>
+    Sequence<typename T::const_iterator> sequence(const T& x)
+    {
+        return sequence(x.begin(), x.end());
+    }
+
     //
     // Sequence formatting
     //
