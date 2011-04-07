@@ -1,39 +1,180 @@
 #if !defined(FORMAT_H_INCLUDED)
 #define FORMAT_H_INCLUDED
 
-//              Copyright Andrea Griffini 2011.
-// Distributed under the Boost Software License, Version 1.0.
-//    (See accompanying file LICENSE_1_0.txt or copy at
-//          http://www.boost.org/LICENSE_1_0.txt)
+// Format strings are stored as a recursive structure with
+// sequences of fields where each field can have subformats.
 //
+// This is done to allow specifying formatting options for
+// containers or subsequences that will need to specify
+// the formatting options for the element.
 //
-// An attempt to try to get usable output formatting in C++
-// Comments are of course welcome (agriff@tin.it).
+// The parser is a recursive descent one and the syntax is
+//
+//    Legend:  < x >            zero or one
+//             x | y | z        alternative
+//             [ x ]            zero or more
+//             /.../            regexp
+//
+//    format     ::=  [ static | field ]
+//    static     ::=  /([^{~]|~{|~~)+/
+//    field      ::=  '{' name < ':' options [ ':' subformat ] > '}'
+//    name       ::=  /([^:}~]|~:|~}|~~)*/
+//    options    ::=  /([^:}~]|~:|~}|~~)*/
+//    subformat  ::=  format
+//
+// examples:
+//
+//    "Hello {name}"         one static + one field with no
+//                           options and no subformats
+//
+//    "Hello {name:30U}"     same with options == "30U"
+//
+//    "{vec::{x:+4}}"        no static, one format with no options
+//                           but one subformat that has options == "+4"
+//
+//    "{mac:17x,2~:}"        one field with options "17x,2:"
 //
 
-#include <string>
 #include <vector>
+#include <string>
 #include <map>
 #include <stdexcept>
 
 namespace format
 {
+    struct Field;
+
+    typedef std::vector<Field> Format;
+
+    struct Field
+    {
+        std::string name;
+        std::string options;
+        std::vector<Format> subformats;
+
+        Field(const std::string& name,
+              const std::string& options)
+        : name(name), options(options)
+        {
+        }
+    };
+
+    Format parseFormat(const char *& p)
+    {
+        Format result;
+        bool last_static = false;
+        while (*p && *p != '}')
+        {
+            std::string sta;
+            while (*p)
+            {
+                if (*p == '~' && p[1])
+                    p++;
+                else if (*p == '{' || *p == '}')
+                    break;
+                sta += *p++;
+            }
+            if (sta.size())
+            {
+                if (!last_static)
+                {
+                    result.push_back(Field("", ""));
+                    last_static = true;
+                }
+                result.back().options += sta;
+            }
+            if (*p == '{')
+            {
+                p++;
+                std::string name;
+                while (*p)
+                {
+                    if (*p == '~' && p[1])
+                        p++;
+                    else if (*p == ':' || *p == '}')
+                        break;
+                    name += *p++;
+                }
+                std::string options;
+                std::vector<Format> subformats;
+                if (*p == ':')
+                {
+                    p++;
+                    while (*p)
+                    {
+                        if (*p == '~' && p[1])
+                            p++;
+                        else if (*p == ':' || *p == '}')
+                            break;
+                        options += *p++;
+                    }
+                    while (*p == ':')
+                    {
+                        p++;
+                        subformats.push_back(parseFormat(p));
+                    }
+                }
+                if (*p != '}')
+                    throw std::runtime_error("'}' expected");
+                result.push_back(Field(name, options));
+                result.back().subformats.swap(subformats);
+                last_static = false;
+                p++;
+            }
+        }
+        return result;
+    }
+
+    Format fmt(const std::string& s)
+    {
+        const char *p = s.c_str();
+        return parseFormat(p);
+    }
+
+    Format fmt(const char *p)
+    {
+        return parseFormat(p);
+    }
+
+    //
+    // A formatter for a specific type
+    //
+    // It's called to convert a value of a specific type to a string,
+    // passing a format::Field object as parameter where options and
+    // subformats can be found.
+    //
+    // Formatting of user-defined types can be specified by adding
+    // template specializations for this class.
+    // A class has been used instead of a template function to allow
+    // partial specialization (for example to be avle to define a
+    // formatter for std::vector<T> where a subformat is used to
+    // format elements).
+    //
+    // For every conversion operation an instance is costructed and
+    // then the method toString is called (this is going to change
+    // in the future to allow precomputing)
+    //
     template<typename T>
     struct Formatter
     {
-        std::string toString(const T& x, const std::string& parms)
+        std::string toString(const T& x, const Field& field)
         {
             throw std::runtime_error("Unsupported type");
             return "";
         }
     };
 
+    //
+    // Format dictionary
+    //
+    // It's a map with std::string keys that can hold any type of element.
+    //
     class ValueWrapperBase
     {
     public:
         ValueWrapperBase() {}
         virtual ~ValueWrapperBase() {}
-        virtual std::string toString(const std::string& parms) const = 0;
+        virtual std::string toString(const Field& field) const = 0;
     private:
         // Taboo
         ValueWrapperBase(const ValueWrapperBase&);
@@ -46,9 +187,9 @@ namespace format
     public:
         T x;
         ValueWrapper(const T& x) : x(x) {}
-        virtual std::string toString(const std::string& parms) const
+        virtual std::string toString(const Field& field) const
         {
-            return Formatter<T>().toString(x, parms);
+            return Formatter<T>().toString(x, field);
         }
     private:
         // Taboo
@@ -58,21 +199,21 @@ namespace format
 
     typedef std::map<std::string, ValueWrapperBase *> Env;
 
-    class FormatDict
+    class Dict
     {
     private:
         Env env;
 
     public:
-        FormatDict() {}
-        virtual ~FormatDict()
+        Dict() {}
+        virtual ~Dict()
         {
             for (Env::iterator i=env.begin(), e=env.end(); i!=e; ++i)
                 delete i->second;
         }
 
         template<typename T>
-        FormatDict& operator()(const std::string& name, const T& value)
+        Dict& operator()(const std::string& name, const T& value)
         {
             Env::iterator p = env.find(name);
             if (p == env.end())
@@ -98,128 +239,43 @@ namespace format
 
     private:
         // Taboo
-        FormatDict(const FormatDict&);
-        FormatDict& operator=(const FormatDict&);
+        Dict(const Dict&);
+        Dict& operator=(const Dict&);
     };
 
-    struct Field
+    //
+    // Formatting functions
+    //
+    // (those should really go in a .cpp)
+    //
+
+    inline std::string format(const Format& fs, const Dict& fd)
     {
-        std::string name;
-        std::string parms;
-
-        Field(const std::string& name, const std::string& parms)
-            : name(name), parms(parms)
+        std::string result;
+        for (int i=0,n=fs.size(); i<n; i++)
         {
-        }
-
-        void write(std::string& result, const FormatDict& fd) const
-        {
-            if (name.size())
+            const Field& f = fs[i];
+            if (f.name.size())
             {
-                // A real field block
-                result += fd[name].toString(parms);
+                // Read field
+                result += fd[f.name].toString(f);
             }
             else
             {
-                // A static text block
-                result += parms;
+                // Static field
+                result += f.options;
             }
         }
-    };
-
-    struct FormatString
-    {
-        std::vector<Field> fields;
-
-        FormatString(const std::string& s)
-        {
-            const char *p = s.c_str();
-            bool last_is_static = false;
-            while (*p)
-            {
-                const char *static_start = p;
-                while (*p && *p != '%')
-                    p++;
-                const char *static_end = p;
-                if (static_end != static_start)
-                {
-                    if (!last_is_static)
-                    {
-                        last_is_static = true;
-                        fields.push_back(Field("", ""));
-                    }
-                    fields.back().parms += std::string(static_start, static_end);
-                }
-                if (*p == '%')
-                {
-                    p++;
-                    if (*p == '%')
-                    {
-                        // Escape
-                        if (!last_is_static)
-                        {
-                            fields.push_back(Field("", ""));
-                            last_is_static = true;
-                        }
-                        fields.back().parms += '%';
-                        p++;
-                    }
-                    else
-                    {
-                        const char *parms_start = p;
-                        while (*p && *p!='{')
-                            p++;
-                        if (*p != '{')
-                            throw std::runtime_error("Invalid format string ('{' expected after '%')");
-                        const char *parms_end = p++;
-                        const char *name_start = p;
-                        while (*p && *p!='}')
-                            p++;
-                        if (*p != '}')
-                            throw std::runtime_error("Invalid format string ('}' expected after '{')");
-                        const char *name_end = p++;
-                        fields.push_back(Field(std::string(name_start, name_end),
-                                               std::string(parms_start, parms_end)));
-                        last_is_static = false;
-                    }
-                }
-            }
-        }
-
-        std::string format(const FormatDict& fd) const
-        {
-            std::string result;
-            for (int i=0,n=fields.size(); i<n; i++)
-                fields[i].write(result, fd);
-            return result;
-        }
-    };
-
-    inline std::string operator % (const FormatString& fs, const FormatDict& fd)
-    {
-        return fs.format(fd);
+        return result;
     }
 
-    ///////////////////////////////////////
-    //                                   //
-    //  Predefined formatting functions  //
-    //                                   //
-    ///////////////////////////////////////
+    inline std::string operator % (const Format& fs, const Dict& fd)
+    {
+        return format(fs, fd);
+    }
 
-    //
-    // Sequence formatting options
-    //
-    // The parameter string is used as a format string for the
-    // elements being formatted where '*' is used as name of
-    // the element being iterated (this can be escaped by doubling).
-    // If a character '/' is present then the part following
-    // it is used as separator between elements and is not added
-    // after last element.
-    //
-    // An empty string as parameter is assumed as being "*/, "
-    //
-    // A sequence object is defined by two iterators.
-    //
+    // Sequence utility class, can be created
+    // from two iterators or from a container
     template<typename T>
     struct Sequence
     {
@@ -231,58 +287,41 @@ namespace format
     };
 
     template<typename T>
-    struct Formatter< Sequence<T> >
-    {
-        std::string toString(const Sequence<T>& xx, const std::string& parms)
-        {
-            std::string result;
-            std::string fmt;
-            std::string sep;
-            for (int i=0,n=parms.size(); i<n; i++)
-            {
-                if (parms[i] == '*' && i < n-1 && parms[i+1] == '*')
-                {
-                    fmt += '*';
-                    i += 1;
-                }
-                else if (parms[i] == '*')
-                {
-                    fmt += "%{x}";
-                }
-                else
-                {
-                    fmt += parms[i];
-                }
-            }
-            if (fmt == "")
-            {
-                fmt = "%{x}/,";
-            }
-
-            if (fmt.find('/') != std::string::npos)
-            {
-                sep = fmt.substr(fmt.find('/') + 1);
-                fmt = fmt.substr(0, fmt.size() - sep.size() - 1);
-            }
-
-            FormatString fs(fmt);
-            FormatDict element;
-            for (T i=xx.it0,e=xx.it1; i!=e;)
-            {
-                element("x", *i);
-                result += fs % element;
-                ++i;
-                if (i != e) result += sep;
-            }
-            return result;
-        }
-    };
-
-    template<typename T>
     Sequence<T> sequence(const T& i0, const T& i1)
     {
         return Sequence<T>(i0, i1);
     }
+
+    //
+    // Sequence formatting
+    //
+    // Options are interpreted as a single string to be
+    // used as a separator between elements.
+    // First subformat is instead used for elements and
+    // the element name used is '*'.
+    // If no subformats are present then "{*}" is used
+    // for formatting elements.
+    //
+    template<typename T>
+    struct Formatter< Sequence<T> >
+    {
+        std::string toString(const Sequence<T>& xx, const Field& field)
+        {
+            const Format& fs(field.subformats.size()
+                             ? field.subformats[0]
+                             : fmt("{*}"));
+            std::string result;
+            Dict element;
+            for (T i=xx.it0,e=xx.it1; i!=e;)
+            {
+                element("*", *i);
+                result += fs % element;
+                ++i;
+                if (i != e) result += field.options;
+            }
+            return result;
+        }
+    };
 
     //
     // Int formatting options
@@ -316,9 +355,9 @@ namespace format
     template<>
     struct Formatter<int>
     {
-        std::string toString(const int& xx, const std::string& parms)
+        std::string toString(const int& xx, const Field& field)
         {
-            const char *p = parms.c_str();
+            const char *p = field.options.c_str();
             int align = 1;
             int plus = 0;
             int filler = ' ';

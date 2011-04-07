@@ -1,7 +1,7 @@
 #include "format.h"
 
-using format::FormatString;
-using format::FormatDict;
+using format::fmt;
+using format::Dict;
 using format::sequence;
 
 struct P2d
@@ -17,9 +17,9 @@ namespace format {
     template<>
     struct Formatter<P2d>
     {
-        std::string toString(const P2d& p, const std::string& parms)
+        std::string toString(const P2d& p, const Field& field)
         {
-            return FormatString("P2d(%+020>*/2,4:{x}; %011X,2:{y})") % FormatDict()
+            return fmt("P2d({x:+020>*/2,4}; {y:011X,2~:})") % Dict()
                 ("x", p.x)
                 ("y", p.y);
         }
@@ -29,22 +29,28 @@ namespace format {
 #include <iostream>
 #include <vector>
 #include <list>
+#include <set>
 
 int main()
 {
     std::vector<int> v;
     std::list<int> L;
+    std::set<int> S;
     for (int i=0; i<10; i++)
     {
         v.push_back(i*i);
         L.push_back(i*i);
+        S.insert(i*i);
     }
 
-    FormatString fs("p = %{p}\nv = [%*/, {v}]\nL = %(*)/->{L}");
-    FormatDict fd;
+    format::Format fs = fmt("p = {p}\nv = [{v:, }]\n"
+                            "L = {L:->:({*})}\n"
+                            "S = ~{{S: }~}");
+    Dict fd;
     fd  ("p", P2d(1234, 0xbadf00d))
         ("v", sequence(v.begin(), v.end()))
-        ("L", sequence(L.begin(), L.end()));
+        ("L", sequence(L.begin(), L.end()))
+        ("S", sequence(S.begin(), S.end()));
     std::cout << fs % fd << std::endl;
     return 0;
 }
