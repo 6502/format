@@ -6,10 +6,10 @@ the format string instead than in the calling code.
 For example the format string "{x:08/2}" formats the field
 named 'x' using 8 binary digits with leading zeros.
 
-There is also provision for sequence formatting:
+There is also support for sequence formatting:
 
     std::cout << Format("[{v:/, :0x{*:02x}}]") %
-                 FormatDict()("v", sequence(v.begin(), v.end()));
+                 FormatDict()("v", sequence(v));
 
 given an std::vector containing 1, 2, 3, 4 and 5 will generate
 as output
