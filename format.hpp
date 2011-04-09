@@ -1,5 +1,5 @@
-#if !defined(FORMAT_H_INCLUDED)
-#define FORMAT_H_INCLUDED
+#if !defined(FORMAT_HPP_INCLUDED)
+#define FORMAT_HPP_INCLUDED
 
 // Format strings are stored as a recursive structure with
 // sequences of fields where each field can have subformats.
@@ -540,4 +540,4 @@ namespace format
     };
 }
 
-#endif // FORMAT_H_INCLUDED
+#endif // FORMAT_HPP_INCLUDED
