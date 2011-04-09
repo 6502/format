@@ -8,8 +8,8 @@ named 'x' using 8 binary digits with leading zeros.
 
 There is also support for sequence formatting:
 
-    std::cout << Format("[{v:/, :0x{*:02x}}]") %
-                 FormatDict()("v", sequence(v));
+    std::cout << fmt("[{v:/, :0x{*:02x}}]") %
+                 Dict()("v", sequence(v));
 
 given an std::vector containing 1, 2, 3, 4 and 5 will generate
 as output
@@ -26,9 +26,8 @@ from format strings to code). I've had also always a very bad
 feeling about the C++ approach to formatting options.
 
 C++ statically typed output formatting is in my opinion so
-limiting and annoying that I always use <stdio> if I can.
-
-And I know I'm not alone.
+limiting and annoying that I always use <stdio> if I can and
+I know I'm not alone.
 
 This is just my first attempt at trying to tell something
 constructive instead of just whining about those problems.
