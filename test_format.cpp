@@ -74,5 +74,9 @@ int main()
 
     std::cout << fmt("{m:\n:{*::{*1:=8l} => {*2:08/2}}}") % Dict()("m", sequence(m)) << std::endl;
 
+    std::cout << fmt("{s:>30=.}") % Dict()("s", "This is a C string") << std::endl;
+
+    std::cout << fmt("{v}") % Dict()("v", &v) << std::endl;
+
     return 0;
 }

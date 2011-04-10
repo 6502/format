@@ -225,6 +225,12 @@ namespace format
             return *this;
         }
 
+        // Special case to format C strings as strings
+        Dict& operator()(const std::string& name, const char * s)
+        {
+            return (*this)(name, std::string(s));
+        }
+
         const ValueWrapperBase& operator[](const std::string& name) const
         {
             Env::const_iterator p = env.find(name);
@@ -403,6 +409,42 @@ namespace format
 
 #undef COMMIFY
 #undef DEF_CONTAINER_FORMATTER
+
+    //
+    // Pointer formatting
+    //
+    // By default a typed pointer formatter just uses the pointed-to
+    // value. This way addresses can be passed in the format dictionary
+    // to avoid copying (of course if needed lifetime is guaranteed).
+    //
+    // NOTE 1: Pointer to chars are handled by a non-template version of
+    //         Dict::operator() to convert them to std::strings.
+    //
+    // NOTE 2: Once again the broken const concept is forcing me
+    //         defining the same code twice, one for const pointers
+    //         and one for non-const pointers. Also note that I am
+    //         forced to use a typedef to be able to specify correctly
+    //         the type of the parameter.
+    //
+    template<typename T>
+    struct Formatter<const T *>
+    {
+        typedef const T * constp;
+        std::string toString(const constp& x, const Field& field)
+        {
+            return Formatter<T>().toString(*x, field);
+        }
+    };
+
+    template<typename T>
+    struct Formatter<T *>
+    {
+        typedef T * tp;
+        std::string toString(const tp& x, const Field& field)
+        {
+            return Formatter<T>().toString(*x, field);
+        }
+    };
 
     //
     // Floating point formatting options
@@ -625,7 +667,6 @@ namespace format
             return result;
         }
     };
-
 
     //
     // Int formatting options
