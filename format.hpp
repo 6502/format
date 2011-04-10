@@ -218,17 +218,10 @@ namespace format
         template<typename T>
         Dict& operator()(const std::string& name, const T& value)
         {
-            Env::iterator p = env.find(name);
-            if (p == env.end())
-            {
-                env[name] = new ValueWrapper<T>(value);
-            }
-            else
-            {
-                ValueWrapperBase *vw = new ValueWrapper<T>(value);
-                delete p->second;
-                p->second = vw;
-            }
+            ValueWrapperBase *vw = new ValueWrapper<T>(value);
+            ValueWrapperBase *& p(env[name]);
+            delete p;
+            p = vw;
             return *this;
         }
 
