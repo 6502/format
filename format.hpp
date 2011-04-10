@@ -35,9 +35,11 @@
 //    "{mac:17x,2~:}"        one field with options "17x,2:"
 //
 
-#include <vector>
 #include <string>
+#include <vector>
 #include <map>
+#include <list>
+#include <set>
 #include <stdexcept>
 #include <stdio.h>
 
@@ -351,6 +353,63 @@ namespace format
                 ("*2", x.second);
         }
     };
+
+    //
+    // Container formatting
+    //
+    // Options are used for start/stop markers (half of chars each)
+    // and first subformat is used to format the sequence (the
+    // container name will be "c" when used in the subformat).
+    // If no markers are provided then "[]" is used for vectors,
+    // "()" for list, "{}" for set and "{||}" for map.
+    // If no subformat is present then "{c:, }" is used for
+    // vector and set, "{c: }" is used for list and format
+    // "{c:, :{*:{*1} -> {*2}}}" is used for map.
+    //
+    // It's probably possible to avoid macro trickery for this to
+    // support separate container types without copy and paste,
+    // but the code I come up with is longer and IMO harder to
+    // understand than the following. One problem is for example
+    // that C++ doesn't support template typedefs and syntax for
+    // workarounds gets ugly pretty soon.
+    //
+#define DEF_CONTAINER_FORMATTER(TYPES, CONTAINER, BEGIN, SEP, END)           \
+    template<TYPES>                                                          \
+    struct Formatter< CONTAINER >                                            \
+    {                                                                        \
+        std::string toString(const CONTAINER& x, const Field& field)         \
+        {                                                                    \
+            int sz = field.options.size();                                   \
+            std::string result = (sz                                         \
+                                  ? field.options.substr(0, sz/2)            \
+                                  : BEGIN);                                  \
+            result += (field.subformats.size()                               \
+                       ? field.subformats[0]                                 \
+                       : fmt("{c:" SEP "}")) % Dict()("c", sequence(x));     \
+            result += (sz                                                    \
+                       ? field.options.substr((sz - sz/2))                   \
+                       : END);                                               \
+            return result;                                                   \
+        }                                                                    \
+    };
+
+#define COMMIFY(a, b) a, b
+
+    DEF_CONTAINER_FORMATTER(typename T,
+                            std::vector<T>,
+                            "[", ", ", "]")
+    DEF_CONTAINER_FORMATTER(typename T,
+                            std::list<T>,
+                            "(", " ", ")")
+    DEF_CONTAINER_FORMATTER(typename T,
+                            std::set<T>,
+                            "{", ", ", "}")
+    DEF_CONTAINER_FORMATTER(COMMIFY(typename T1, typename T2),
+                            COMMIFY(std::map<T1, T2>),
+                            "{|", ", :{*::{*1} -> {*2}}", "|}")
+
+#undef COMMIFY
+#undef DEF_CONTAINER_FORMATTER
 
     //
     // Floating point formatting options

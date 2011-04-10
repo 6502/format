@@ -36,6 +36,13 @@ int main()
     std::vector<int> v;
     std::list<int> L;
     std::set<int> S;
+    std::map<std::string, int> m;
+    m["I"] = 1;
+    m["II"] = 2;
+    m["III"] = 3;
+    m["IV"] = 4;
+    m["V"] = 5;
+
     for (int i=0; i<10; i++)
     {
         v.push_back(i*i);
@@ -53,18 +60,17 @@ int main()
         ("S", sequence(S));
     std::cout << fs % fd << std::endl;
 
+    std::cout << fmt("{1}\n{2}\n{3}\n{4}\n") % Dict()
+        ("1", v)
+        ("2", L)
+        ("3", S)
+        ("4", m);
+
     std::string lines[] = {"This", "is a test", "for the string formatting options"};
 
     std::cout << fmt("{L:\n:{*:=60}}") % Dict()("L", sequence(&lines[0], &lines[3])) << std::endl;
 
     std::cout << fmt("{n:@(###)-########}") % Dict()("n", std::string("555123456789012")) << std::endl;
-
-    std::map<std::string, int> m;
-    m["I"] = 1;
-    m["II"] = 2;
-    m["III"] = 3;
-    m["IV"] = 4;
-    m["V"] = 5;
 
     std::cout << fmt("{m:\n:{*::{*1:=8l} => {*2:08/2}}}") % Dict()("m", sequence(m)) << std::endl;
 
