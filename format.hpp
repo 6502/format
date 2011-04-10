@@ -370,6 +370,190 @@ namespace format
     };
 
     //
+    // String formatting options
+    //
+    // There are two main formatting modes; picture based or general; for a picture
+    // based format options is simply a string where each time a specific placeholder
+    // character is used (default '#') a character from the value is sent in output.
+    // In a general format instead options are provided for fixed width with alignment,
+    // case conversion, stripping and escaping.
+    //
+    // format           ::= general-format | picture-format
+    //
+    // general-format   ::= { align }
+    //                      width
+    //                      { '=' filler }
+    //                      { '>' overflowchar }
+    //                      { upcase }
+    //                      { strip }
+    //                      { escape }
+    //
+    // align            ::= { '<' | '=' | '>' }
+    // filler           ::= char
+    // width            ::= [ '0'-'9' ]
+    // overflowchar     ::= char
+    // upcase           ::= { 'U' | 'l' }
+    // strip            ::= 's' { { 'L' | 'R' } }
+    // escape           ::= '/' 'C'
+    //
+    // picture-format   ::= '@' { '=' placeholder } { '<' filler } [ char ]
+    //
+
+    template<>
+    struct Formatter<std::string>
+    {
+        std::string toString(const std::string& x, const Field& field)
+        {
+            std::string result;
+
+            if (field.options.size() > 0 && field.options[0] == '@')
+            {
+                // Picture format
+                char placeholder = '#';
+                char filler = ' ';
+                const char *p = field.options.c_str() + 1;
+                if (*p == '=' && p[1])
+                {
+                    placeholder = p[1];
+                    p += 2;
+                }
+                if (*p == '<' && p[1])
+                {
+                    filler = p[1];
+                    p += 2;
+                }
+                const char *s = x.c_str();
+                while (*p)
+                {
+                    if (*p == placeholder)
+                    {
+                        result += *s ? *s++ : filler;
+                    }
+                    else
+                    {
+                        result += *p;
+                    }
+                    p++;
+                }
+            }
+            else
+            {
+                // General format: option parsing
+                int width = 0;
+                int align = -1;
+                char filler = ' ';
+                char overflow = 0;
+                char upcase = 0;
+                char strip = 0;
+                char escape = 0;
+
+                const char *p = field.options.c_str();
+
+                // Alignment
+                if (*p == '<')      { align = -1; p++; }
+                else if (*p == '=') { align = 0; p++; }
+                else if (*p == '>') { align = 1; p++; }
+
+                // Width
+                while (*p >= '0' && *p <= '9')
+                    width = width * 10 + *p++ - '0';
+
+                // Filler and overflow
+                if (*p == '=' && p[1]) { filler = p[1]; p += 2; }
+                if (*p == '>' && p[1]) { overflow = p[1]; p += 2; }
+
+                // Upcase
+                if (*p == 'U' || *p == 'l') upcase = *p++;
+
+                // Strip
+                if (*p == 's')
+                {
+                    p++;
+                    if (*p == 'L')       strip = 1;
+                    else if (*p == 'R')  strip = 2;
+                    else                 strip = 3;
+                }
+
+                // Escape
+                if (*p == '/' && p[1] == 'C')
+                {
+                    escape = 'C';
+                    p += 2;
+                }
+
+                if (*p) throw std::runtime_error("Invalid format string");
+
+                // Formatting
+                result = x;
+                int sz = result.size();
+
+                // Strip
+                if (strip & 1)
+                {
+                    int i = 0;
+                    while (i < sz && result[i] == ' ') i++;
+                    result = result.substr(i);
+                    sz -= i;
+                }
+                if (strip & 2)
+                {
+                    while (sz && result[sz-1] == ' ') --sz;
+                    result = result.substr(0, sz);
+                }
+
+                // Overflow check
+                if (width > 0 && overflow && sz > width)
+                {
+                    result.resize(width);
+                    for (int i=0; i<width; i++)
+                        result[i] = overflow;
+                }
+                else
+                {
+                    // Padding / truncation
+                    if (width > 0)
+                    {
+                        if (sz > width)
+                        {
+                            // Truncate
+                            result = result.substr(0, width);
+                            sz = width;
+                        }
+                        else
+                        {
+                            // Padding
+                            while (sz < width)
+                            {
+                                if (align != -1)
+                                {
+                                    result.insert(result.begin(), filler);
+                                    sz++;
+                                }
+                                if (sz < width && align != 1)
+                                {
+                                    result += filler;
+                                    sz++;
+                                }
+                            }
+                        }
+                    }
+
+                    // Case conversion
+                    if (upcase == 'U')
+                        for (int i=0; i<sz; i++)
+                            result[i] = toupper(result[i]);
+                    else if (upcase == 'l')
+                        for (int i=0; i<sz; i++)
+                            result[i] = tolower(result[i]);
+                }
+            }
+
+            return result;
+        }
+    };
+
+
+    //
     // Int formatting options
     //
     // format      ::=  { align }

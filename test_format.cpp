@@ -52,5 +52,11 @@ int main()
         ("L", sequence(L))
         ("S", sequence(S));
     std::cout << fs % fd << std::endl;
+
+    std::string lines[] = {"This", "is a test", "for the string formatting options"};
+
+    std::cout << fmt("{L:\n:{*:=60}}") % Dict()("L", sequence(&lines[0], &lines[3])) << std::endl;
+
+    std::cout << fmt("{n:@(###)-########}") % Dict()("n", std::string("555123456789012")) << std::endl;
     return 0;
 }
