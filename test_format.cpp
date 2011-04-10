@@ -26,6 +26,16 @@ namespace format {
     };
 }
 
+// Silly example, just to test inheritance
+struct P3d : P2d
+{
+    double z;
+    P3d(double x, double y, double z)
+        : P2d(x, y), z(z)
+    {
+    }
+};
+
 #include <iostream>
 #include <vector>
 #include <list>
@@ -77,6 +87,19 @@ int main()
     std::cout << fmt("{s:>30=.}") % Dict()("s", "This is a C string") << std::endl;
 
     std::cout << fmt("{v}") % Dict()("v", &v) << std::endl;
+
+    P3d p3(11, 21, 31);
+    try
+    {
+        std::cout << fmt("{p}") % Dict()("p", p3) << std::endl;
+        printf("WE GOT A PROBLEM\n");
+    }
+    catch(const std::runtime_error& re)
+    {
+        std::cout << fmt("Exception thrown as expected --> {s}\n") % Dict()("s", re.what());
+    }
+
+    std::cout << fmt("{p}") % Dict()("p", static_cast<P2d *>(&p3)) << std::endl; // Formatted as P2d
 
     return 0;
 }
