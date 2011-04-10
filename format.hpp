@@ -39,6 +39,7 @@
 #include <string>
 #include <map>
 #include <stdexcept>
+#include <stdio.h>
 
 namespace format
 {
@@ -330,7 +331,54 @@ namespace format
     };
 
     //
+    // Floating point formatting options
+    //
+    // For now I'm simply using stdio formatting options adding
+    // '%' at the beginning and eventually 'f' at the end if
+    // neither 'f' nor 'g' is present.
+    //
+    // To be accepted option string must match
+    //
+    //          [+]?\d*(\.\d*)?[fg]?
+    //
+    template <>
+    struct Formatter<double>
+    {
+        std::string toString(const double& x, const Field& field)
+        {
+            // Safety check
+            const char *p = field.options.c_str();
+            if (*p == '+') p++;
+            while (*p >= '0' && *p <= '9')
+                p++;
+            if (*p == '.')
+            {
+                p++;
+                while (*p >= '0' && *p <= '9')
+                    p++;
+            }
+            if (*p == 'f' || *p == 'g') p++;
+            if (*p) throw std::runtime_error("Invalid floating point formatting options");
+
+            char buf[80];
+            std::string opt = std::string("%") + field.options;
+            if (opt[opt.size()-1] != 'f' && opt[opt.size()-1] != 'g')
+                opt += "f";
+            snprintf(buf, sizeof(buf), opt.c_str(), x);
+            return buf;
+        }
+    };
+
+    //
     // Int formatting options
+    //
+    // format      ::=  { align }
+    //                  { plus }
+    //                  { { '0' | '=' filler } }
+    //                  width
+    //                  { '>' overflowchar }
+    //                  { { 'x' | 'X' | '/' base { upcase } }
+    //                  { dsep { sepchar } }
     //
     // plus        ::=  '+'
     //
@@ -349,14 +397,6 @@ namespace format
     // align       ::=  { '<' | '=' | '>' }
     //
     // upcase      ::=  'U'
-    //
-    // format      ::=  { align }
-    //                  { plus }
-    //                  { { '0' | '=' filler } }
-    //                  width
-    //                  { '>' overflowchar }
-    //                  { { 'x' | 'X' | '/' base { upcase } }
-    //                  { dsep { sepchar } }
     //
     template<>
     struct Formatter<int>

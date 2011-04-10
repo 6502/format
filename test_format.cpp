@@ -6,8 +6,8 @@ using format::sequence;
 
 struct P2d
 {
-    int x, y;
-    P2d(int x, int y)
+    double x, y;
+    P2d(double x, double y)
         : x(x), y(y)
     {
     }
@@ -19,7 +19,7 @@ namespace format {
     {
         std::string toString(const P2d& p, const Field& field)
         {
-            return fmt("P2d({x:+020>*/2,4}; {y:011X,2~:})") % Dict()
+            return fmt("P2d({x:+0.3f}, {y:+0.3f})") % Dict()
                 ("x", p.x)
                 ("y", p.y);
         }
@@ -45,7 +45,7 @@ int main()
 
     format::Format fs = fmt("p = {p}\nv = [{v:, }]\n"
                             "L = {L:->:({*})}\n"
-                            "S = ~{{S: }~}");
+                            "S = ~{{S: :0x{*:04x}}~}");
     Dict fd;
     fd  ("p", P2d(1234, 0xbadf00d))
         ("v", sequence(v))
