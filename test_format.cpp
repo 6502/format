@@ -58,5 +58,15 @@ int main()
     std::cout << fmt("{L:\n:{*:=60}}") % Dict()("L", sequence(&lines[0], &lines[3])) << std::endl;
 
     std::cout << fmt("{n:@(###)-########}") % Dict()("n", std::string("555123456789012")) << std::endl;
+
+    std::map<std::string, int> m;
+    m["I"] = 1;
+    m["II"] = 2;
+    m["III"] = 3;
+    m["IV"] = 4;
+    m["V"] = 5;
+
+    std::cout << fmt("{m:\n:{*::{*1:=8l} => {*2:08/2}}}") % Dict()("m", sequence(m)) << std::endl;
+
     return 0;
 }

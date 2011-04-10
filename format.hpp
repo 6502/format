@@ -331,6 +331,28 @@ namespace format
     };
 
     //
+    // Pair formatting
+    //
+    // Options are not used; first subformat is used to print
+    // both first and second element of the pair using "*1" and "*2"
+    // as field names. If format is not present then by default
+    // "({*1}, {*2})" is used.
+    //
+    template<typename T1, typename T2>
+    struct Formatter< std::pair<T1, T2> >
+    {
+        std::string toString(const std::pair<T1, T2>& x, const Field& field)
+        {
+            Format fs = (field.subformats.size()
+                         ? field.subformats[0]
+                         : fmt("({*1}, {*2})"));
+            return fs % Dict()
+                ("*1", x.first)
+                ("*2", x.second);
+        }
+    };
+
+    //
     // Floating point formatting options
     //
     // For now I'm simply using stdio formatting options adding
@@ -341,7 +363,7 @@ namespace format
     //
     //          [+]?\d*(\.\d*)?[fg]?
     //
-    template <>
+    template<>
     struct Formatter<double>
     {
         std::string toString(const double& x, const Field& field)
