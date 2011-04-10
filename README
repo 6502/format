@@ -1,7 +1,7 @@
 This is an attempt to implement a dynamic formatting system
 for C++. It is different from boost.format approach because
 it uses named parameters and places formatting options in
-the format string instead of in the calling code.
+the format string instead of the calling code.
 
 For example the format string "{x:08/2}" formats the field
 named 'x' using 8 binary digits with leading zeros.
