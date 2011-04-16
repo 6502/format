@@ -322,7 +322,7 @@ namespace format
             Dict element;
             for (T i=xx.it0,e=xx.it1; i!=e;)
             {
-                element("*", *i);
+                element("*", &*i);
                 result += fs % element;
                 ++i;
                 if (i != e) result += field.options;
@@ -676,7 +676,7 @@ namespace format
     //                  { { '0' | '=' filler } }
     //                  width
     //                  { '>' overflowchar }
-    //                  { { 'x' | 'X' | '/' base { upcase } }
+    //                  { 'x' | 'X' | '/' base { upcase } }
     //                  { dsep { sepchar } }
     //
     // plus        ::=  '+'
@@ -877,6 +877,20 @@ namespace format
             return result;
         }
     };
+
+    template<typename T>
+    std::string str(const T& x, const std::string& f = "{*}")
+    {
+        bool abbrev = (f.find('{') == std::string::npos);
+        return fmt(abbrev ? "{*:" + f + "}" : f) % Dict()("*", &x);
+    }
+
+    template<typename T>
+    std::string str(const T& x, const Format& f)
+    {
+        return f % Dict()("*", &x);
+    }
+
 }
 
 #endif // FORMAT_HPP_INCLUDED

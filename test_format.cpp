@@ -3,6 +3,7 @@
 using format::fmt;
 using format::Dict;
 using format::sequence;
+using format::str;
 
 struct P2d
 {
@@ -100,6 +101,10 @@ int main()
     }
 
     std::cout << fmt("{p}") % Dict()("p", static_cast<P2d *>(&p3)) << std::endl; // Formatted as P2d
+
+    std::cout << str(3.141592654) << std::endl;
+    std::cout << str(std::string("This is a test"), "{*:=40==}") << std::endl;
+    std::cout << str(175676, "09X,4~:") << std::endl;
 
     return 0;
 }
