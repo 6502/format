@@ -18,7 +18,7 @@ namespace format {
     template<>
     struct Formatter<P2d>
     {
-        std::string toString(const P2d& p, const Field& field)
+        static std::string toString(const P2d& p, const Field& field)
         {
             return fmt("P2d({x:+0.3f}, {y:+0.3f})") % Dict()
                 ("x", p.x)

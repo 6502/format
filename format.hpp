@@ -160,7 +160,7 @@ namespace format
     template<typename T>
     struct Formatter
     {
-        std::string toString(const T& x, const Field& field)
+        static std::string toString(const T& x, const Field& field)
         {
             throw std::runtime_error("Unsupported type");
             return "";
@@ -192,7 +192,7 @@ namespace format
         ValueWrapper(const T& x) : x(x) {}
         virtual std::string toString(const Field& field) const
         {
-            return Formatter<T>().toString(x, field);
+            return Formatter<T>::toString(x, field);
         }
     private:
         // Taboo
@@ -313,7 +313,7 @@ namespace format
     template<typename T>
     struct Formatter< Sequence<T> >
     {
-        std::string toString(const Sequence<T>& xx, const Field& field)
+        static std::string toString(const Sequence<T>& xx, const Field& field)
         {
             const Format& fs(field.subformats.size()
                              ? field.subformats[0]
@@ -342,7 +342,7 @@ namespace format
     template<typename T1, typename T2>
     struct Formatter< std::pair<T1, T2> >
     {
-        std::string toString(const std::pair<T1, T2>& x, const Field& field)
+        static std::string toString(const std::pair<T1, T2>& x, const Field& field)
         {
             Format fs = (field.subformats.size()
                          ? field.subformats[0]
@@ -376,7 +376,7 @@ namespace format
     template<TYPES>                                                          \
     struct Formatter< CONTAINER >                                            \
     {                                                                        \
-        std::string toString(const CONTAINER& x, const Field& field)         \
+        static std::string toString(const CONTAINER& x, const Field& field)  \
         {                                                                    \
             int sz = field.options.size();                                   \
             std::string result = (sz                                         \
@@ -430,9 +430,9 @@ namespace format
     struct Formatter<const T *>
     {
         typedef const T * constp;
-        std::string toString(const constp& x, const Field& field)
+        static std::string toString(const constp& x, const Field& field)
         {
-            return Formatter<T>().toString(*x, field);
+            return Formatter<T>::toString(*x, field);
         }
     };
 
@@ -440,9 +440,9 @@ namespace format
     struct Formatter<T *>
     {
         typedef T * tp;
-        std::string toString(const tp& x, const Field& field)
+        static std::string toString(const tp& x, const Field& field)
         {
-            return Formatter<T>().toString(*x, field);
+            return Formatter<T>::toString(*x, field);
         }
     };
 
@@ -460,7 +460,7 @@ namespace format
     template<>
     struct Formatter<double>
     {
-        std::string toString(const double& x, const Field& field)
+        static std::string toString(const double& x, const Field& field)
         {
             // Safety check
             const char *p = field.options.c_str();
@@ -518,7 +518,7 @@ namespace format
     template<>
     struct Formatter<std::string>
     {
-        std::string toString(const std::string& x, const Field& field)
+        static std::string toString(const std::string& x, const Field& field)
         {
             std::string result;
 
@@ -700,7 +700,7 @@ namespace format
     template<>
     struct Formatter<int>
     {
-        std::string toString(const int& xx, const Field& field)
+        static std::string toString(const int& xx, const Field& field)
         {
             const char *p = field.options.c_str();
             int align = 1;
